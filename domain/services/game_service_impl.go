@@ -63,7 +63,12 @@ func (s *GameServiceImpl) GetGameByID(id, userID string) (*models.Game, error) {
 		return nil, errors.New("game not found")
 	}
 
-	// Verificar que el juego pertenezca al usuario
+	// Validar que el juego exista
+	if game == nil {
+		logger.Error("Game not found: %s", id)
+		return nil, errors.New("game not found")
+	}
+
 	if game.UserID != userID {
 		logger.Error("User %s does not own game %s", userID, id)
 		return nil, errors.New("access denied")
@@ -73,9 +78,14 @@ func (s *GameServiceImpl) GetGameByID(id, userID string) (*models.Game, error) {
 }
 
 func (s *GameServiceImpl) UpdateGame(id, userID string, name, description, coverImageURL *string, status *models.GameStatus, completed *bool) (*models.Game, error) {
-	// Obtener juego existente
 	game, err := s.gameRepo.FindByID(id)
 	if err != nil {
+		logger.Error("Game not found: %s", id)
+		return nil, errors.New("game not found")
+	}
+
+	// Validar que el juego exista
+	if game == nil {
 		logger.Error("Game not found: %s", id)
 		return nil, errors.New("game not found")
 	}
@@ -113,13 +123,18 @@ func (s *GameServiceImpl) UpdateGame(id, userID string, name, description, cover
 }
 
 func (s *GameServiceImpl) DeleteGame(id, userID string) error {
-	// Verificar existencia y propiedad
 	game, err := s.gameRepo.FindByID(id)
 	if err != nil {
 		logger.Error("Game not found: %s", id)
 		return errors.New("game not found")
 	}
 
+	// Validar que el juego exista
+	if game == nil {
+		logger.Error("Game not found: %s", id)
+		return errors.New("game not found")
+	}
+	
 	if game.UserID != userID {
 		logger.Error("User %s does not own game %s", userID, id)
 		return errors.New("access denied")
