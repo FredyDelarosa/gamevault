@@ -10,6 +10,7 @@ import (
 	"gv/core/config"
 	"gv/core/database"
 	"gv/core/logger"
+	"gv/domain/models"
 	domainServices "gv/domain/services"
 	"gv/infrastructure/adapters/handlers"
 	infraRepositories "gv/infrastructure/adapters/repositories"
@@ -43,6 +44,12 @@ func main() {
 	}
 	logger.Info("Database connected successfully")
 
+	// Auto-migrar tablas (crear tabla device_tokens si no existe)
+	if err := db.AutoMigrate(&models.DeviceToken{}); err != nil {
+		log.Fatal("Failed to migrate database:", err)
+	}
+	logger.Info("Database migration completed")
+
 	// Configurar modo de Gin
 	if gin.Mode() == gin.DebugMode {
 		gin.SetMode(gin.ReleaseMode)
@@ -51,20 +58,23 @@ func main() {
 	// Inicializar repositorios (infraestructura)
 	userRepo := infraRepositories.NewUserRepository(db)
 	gameRepo := infraRepositories.NewGameRepository(db)
+	deviceTokenRepo := infraRepositories.NewDeviceTokenRepository(db)
 
 	// Inicializar servicios (dominio)
 	authService := domainServices.NewAuthService(userRepo, cfg)
 	gameService := domainServices.NewGameService(gameRepo)
+	notificationService := domainServices.NewNotificationService(deviceTokenRepo, cfg)
 
 	// Inicializar handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	gameHandler := handlers.NewGameHandler(gameService)
+	notificationHandler := handlers.NewNotificationHandler(notificationService)
 
 	// Inicializar middleware
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 
 	// Configurar router
-	r := router.NewRouter(authHandler, gameHandler, authMiddleware)
+	r := router.NewRouter(authHandler, gameHandler, notificationHandler, authMiddleware)
 	engine := r.Setup()
 
 	// Iniciar servidor

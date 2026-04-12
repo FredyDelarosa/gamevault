@@ -7,27 +7,28 @@ import (
 )
 
 type Config struct {
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	JWTSecret  string
-	ServerPort string
+	DBHost                  string
+	DBPort                  string
+	DBUser                  string
+	DBPassword              string
+	DBName                  string
+	JWTSecret               string
+	ServerPort              string
+	FirebaseCredentialsPath string
 }
 
 func LoadConfig() (*Config, error) {
-	// Cargar .env si existe (para desarrollo)
 	_ = godotenv.Load()
 
 	cfg := &Config{
-		DBHost:     getEnv("DB_HOST", "localhost"),
-		DBPort:     getEnv("DB_PORT", "3306"),
-		DBUser:     getEnv("DB_USER", "fredy"),
-		DBPassword: getEnv("DB_PASSWORD", "125645"),
-		DBName:     getEnv("DB_NAME", "gamevault"),
-		JWTSecret:  getEnv("JWT_SECRET", "default-secret-key-change-in-production"),
-		ServerPort: getEnv("SERVER_PORT", "8080"),
+		DBHost:                  getEnv("DB_HOST", "localhost"),
+		DBPort:                  getEnv("DB_PORT", "3306"),
+		DBUser:                  getEnv("DB_USER", "fredy"),
+		DBPassword:              getEnv("DB_PASSWORD", "125645"),
+		DBName:                  getEnv("DB_NAME", "gamevault"),
+		JWTSecret:               getEnv("JWT_SECRET", "default-secret-key-change-in-production"),
+		ServerPort:              getEnv("SERVER_PORT", "8080"),
+		FirebaseCredentialsPath: getEnv("FIREBASE_CREDENTIALS_PATH", ""),
 	}
 
 	return cfg, nil

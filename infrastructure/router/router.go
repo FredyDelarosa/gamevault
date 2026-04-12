@@ -10,20 +10,23 @@ import (
 )
 
 type Router struct {
-	authHandler    *handlers.AuthHandler
-	gameHandler    *handlers.GameHandler
-	authMiddleware *middleware.AuthMiddleware
+	authHandler         *handlers.AuthHandler
+	gameHandler         *handlers.GameHandler
+	notificationHandler *handlers.NotificationHandler
+	authMiddleware      *middleware.AuthMiddleware
 }
 
 func NewRouter(
 	authHandler *handlers.AuthHandler,
 	gameHandler *handlers.GameHandler,
+	notificationHandler *handlers.NotificationHandler,
 	authMiddleware *middleware.AuthMiddleware,
 ) *Router {
 	return &Router{
-		authHandler:    authHandler,
-		gameHandler:    gameHandler,
-		authMiddleware: authMiddleware,
+		authHandler:         authHandler,
+		gameHandler:         gameHandler,
+		notificationHandler: notificationHandler,
+		authMiddleware:      authMiddleware,
 	}
 }
 
@@ -62,6 +65,9 @@ func (r *Router) Setup() *gin.Engine {
 		protected.POST("/games", r.gameHandler.CreateGame)
 		protected.PUT("/games/:id", r.gameHandler.UpdateGame)
 		protected.DELETE("/games/:id", r.gameHandler.DeleteGame)
+
+		// Notifications
+		protected.POST("/notifications/token", r.notificationHandler.SaveFcmToken)
 	}
 
 	// Swagger UI
