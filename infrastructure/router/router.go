@@ -68,6 +68,7 @@ func (r *Router) Setup() *gin.Engine {
 
 		// Notifications
 		protected.POST("/notifications/token", r.notificationHandler.SaveFcmToken)
+		protected.POST("/notifications/send", r.notificationHandler.SendNotification)
 	}
 
 	// Swagger UI

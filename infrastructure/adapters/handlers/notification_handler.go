@@ -20,6 +20,7 @@ func NewNotificationHandler(notificationService services.NotificationService) *N
 		notificationService: notificationService,
 	}
 }
+
 // SaveFcmToken guarda el token FCM del dispositivo.
 // @Summary Guardar token FCM
 // @Description Guarda el token FCM del dispositivo para recibir push notifications.
@@ -53,4 +54,32 @@ func (h *NotificationHandler) SaveFcmToken(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.SuccessResponse{Message: "token saved successfully"})
+}
+
+// SendNotification envía una notificación push a un usuario.
+func (h *NotificationHandler) SendNotification(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "unauthorized"})
+		return
+	}
+
+	var req dto.SendNotificationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Error("Invalid notification request: %v", err)
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	channel := req.Channel
+	if channel == "" {
+		channel = "game_updates"
+	}
+
+	if err := h.notificationService.SendNotificationToUser(userID, req.Title, req.Body, channel); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to send notification"})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.SuccessResponse{Message: "notification sent successfully"})
 }
