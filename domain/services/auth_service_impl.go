@@ -12,17 +12,20 @@ import (
 	"gv/core/logger"
 	"gv/domain/models"
 	"gv/domain/ports/repositories"
+	"gv/domain/ports/services"
 )
 
 type AuthServiceImpl struct {
-	userRepo repositories.UserRepository
-	cfg      *config.Config
+	userRepo            repositories.UserRepository
+	cfg                 *config.Config
+	notificationService services.NotificationService
 }
 
-func NewAuthService(userRepo repositories.UserRepository, cfg *config.Config) *AuthServiceImpl {
+func NewAuthService(userRepo repositories.UserRepository, cfg *config.Config, notificationService services.NotificationService) *AuthServiceImpl {
 	return &AuthServiceImpl{
-		userRepo: userRepo,
-		cfg:      cfg,
+		userRepo:            userRepo,
+		cfg:                 cfg,
+		notificationService: notificationService,
 	}
 }
 
@@ -63,6 +66,14 @@ func (s *AuthServiceImpl) Register(email, password, firstName, lastName string) 
 		logger.Error("Failed to generate token: %v", err)
 		return nil, "", errors.New("failed to generate authentication token")
 	}
+
+	// Notificación de bienvenida
+	go s.notificationService.SendNotificationToUser(
+		user.ID,
+		"¡Bienvenido a GameVault!",
+		"Hola "+firstName+", tu cuenta fue creada exitosamente",
+		"game_updates",
+	)
 
 	return user, token, nil
 }

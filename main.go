@@ -61,9 +61,9 @@ func main() {
 	deviceTokenRepo := infraRepositories.NewDeviceTokenRepository(db)
 
 	// Inicializar servicios (dominio)
-	authService := domainServices.NewAuthService(userRepo, cfg)
-	gameService := domainServices.NewGameService(gameRepo)
 	notificationService := domainServices.NewNotificationService(deviceTokenRepo, cfg)
+	authService := domainServices.NewAuthService(userRepo, cfg, notificationService)
+	gameService := domainServices.NewGameService(gameRepo, notificationService)
 
 	// Inicializar handlers
 	authHandler := handlers.NewAuthHandler(authService)
