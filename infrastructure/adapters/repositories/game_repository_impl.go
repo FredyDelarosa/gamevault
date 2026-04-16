@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -48,4 +49,10 @@ func (r *GameRepositoryImpl) Update(game *models.Game) error {
 
 func (r *GameRepositoryImpl) Delete(id string) error {
 	return r.db.Delete(&models.Game{}, "id = ?", id).Error
+}
+
+func (r *GameRepositoryImpl) FindByNameMatch(gameName string) ([]models.Game, error) {
+	var games []models.Game
+	err := r.db.Where("LOWER(name) LIKE ?", "%"+strings.ToLower(gameName)+"%").Find(&games).Error
+	return games, err
 }

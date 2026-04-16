@@ -20,64 +20,64 @@ import (
 
 // @title GameVault API
 // @version 1.0
-// @description API para gestionar autenticacion y catalogo de juegos.
+// @description API para gestionar autenticacion, catalogo de juegos y foro comunitario.
 // @BasePath /
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-// @description Ingresa el token con formato: Bearer <token>
 
 func main() {
-	// Inicializar logger
 	logger.Init()
 
-	// Cargar configuración
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal("Failed to load config:", err)
 	}
 
-	// Conectar a base de datos
 	db, err := database.NewMySQLConnection(cfg)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 	logger.Info("Database connected successfully")
 
-	// Auto-migrar tablas (crear tabla device_tokens si no existe)
-	if err := db.AutoMigrate(&models.DeviceToken{}); err != nil {
+	// Auto-migrar tablas
+	if err := db.AutoMigrate(
+		&models.DeviceToken{},
+		&models.Post{},
+		&models.PostReaction{},
+	); err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
 	logger.Info("Database migration completed")
 
-	// Configurar modo de Gin
 	if gin.Mode() == gin.DebugMode {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// Inicializar repositorios (infraestructura)
+	// Repositorios
 	userRepo := infraRepositories.NewUserRepository(db)
 	gameRepo := infraRepositories.NewGameRepository(db)
 	deviceTokenRepo := infraRepositories.NewDeviceTokenRepository(db)
+	postRepo := infraRepositories.NewPostRepository(db)
+	postReactionRepo := infraRepositories.NewPostReactionRepository(db)
 
-	// Inicializar servicios (dominio)
+	// Servicios (notificationService primero, los demás dependen de él)
 	notificationService := domainServices.NewNotificationService(deviceTokenRepo, cfg)
 	authService := domainServices.NewAuthService(userRepo, cfg, notificationService)
 	gameService := domainServices.NewGameService(gameRepo, notificationService)
+	postService := domainServices.NewPostService(postRepo, postReactionRepo, gameRepo, userRepo, notificationService)
 
-	// Inicializar handlers
+	// Handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	gameHandler := handlers.NewGameHandler(gameService)
 	notificationHandler := handlers.NewNotificationHandler(notificationService)
+	postHandler := handlers.NewPostHandler(postService, userRepo)
 
-	// Inicializar middleware
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 
-	// Configurar router
-	r := router.NewRouter(authHandler, gameHandler, notificationHandler, authMiddleware)
+	r := router.NewRouter(authHandler, gameHandler, notificationHandler, postHandler, authMiddleware)
 	engine := r.Setup()
 
-	// Iniciar servidor
 	logger.Info("Server starting on port %s", cfg.ServerPort)
 	if err := engine.Run(":" + cfg.ServerPort); err != nil {
 		log.Fatal("Failed to start server:", err)

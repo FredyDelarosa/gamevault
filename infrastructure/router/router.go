@@ -13,6 +13,7 @@ type Router struct {
 	authHandler         *handlers.AuthHandler
 	gameHandler         *handlers.GameHandler
 	notificationHandler *handlers.NotificationHandler
+	postHandler         *handlers.PostHandler
 	authMiddleware      *middleware.AuthMiddleware
 }
 
@@ -20,12 +21,14 @@ func NewRouter(
 	authHandler *handlers.AuthHandler,
 	gameHandler *handlers.GameHandler,
 	notificationHandler *handlers.NotificationHandler,
+	postHandler *handlers.PostHandler,
 	authMiddleware *middleware.AuthMiddleware,
 ) *Router {
 	return &Router{
 		authHandler:         authHandler,
 		gameHandler:         gameHandler,
 		notificationHandler: notificationHandler,
+		postHandler:         postHandler,
 		authMiddleware:      authMiddleware,
 	}
 }
@@ -33,7 +36,6 @@ func NewRouter(
 func (r *Router) Setup() *gin.Engine {
 	router := gin.Default()
 
-	// Configurar CORS
 	router.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -45,7 +47,6 @@ func (r *Router) Setup() *gin.Engine {
 		c.Next()
 	})
 
-	// Rutas públicas
 	api := router.Group("/api")
 	{
 		auth := api.Group("/auth")
@@ -55,7 +56,6 @@ func (r *Router) Setup() *gin.Engine {
 		}
 	}
 
-	// Rutas protegidas (requieren autenticación)
 	protected := api.Group("/")
 	protected.Use(r.authMiddleware.Authenticate())
 	{
@@ -69,9 +69,16 @@ func (r *Router) Setup() *gin.Engine {
 		// Notifications
 		protected.POST("/notifications/token", r.notificationHandler.SaveFcmToken)
 		protected.POST("/notifications/send", r.notificationHandler.SendNotification)
+
+		// Posts (Foro/Comunidad)
+		protected.POST("/posts", r.postHandler.CreatePost)
+		protected.GET("/posts", r.postHandler.GetAllPosts)
+		protected.GET("/posts/my-games", r.postHandler.GetPostsForMyGames)
+		protected.GET("/posts/:id", r.postHandler.GetPostByID)
+		protected.DELETE("/posts/:id", r.postHandler.DeletePost)
+		protected.POST("/posts/:id/react", r.postHandler.ToggleReaction)
 	}
 
-	// Swagger UI
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return router
